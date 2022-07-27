@@ -25,16 +25,7 @@ def extract_rss(rss_link):
 
 
 def stock_info(headings):
-    # Get the entities from each heading, link it with nasdaq data // if possible, and Extract market data with yfinance.
-    stock_dict = {
-        'Org': [],
-        'Symbol': [],
-        'currentPrice': [],
-        'dayHigh': [],
-        'dayLow': [],
-        'forwardPE': [],
-        'dividendYield': []
-    }
+    stock_info_list = []
     stocks_df = pd.read_csv("./data/nasdaq_screener_1658383327100.csv")
     for title in headings:
         doc = nlp(title.text)
@@ -47,18 +38,12 @@ def stock_info(headings):
                         ent.text)]['Name'].values[0]
 
                     # Recieve info from yfinance
-                    stock_info = yf.Ticker(symbol).info
                     print(symbol)
-                    stock_dict['Org'].append(org_name)
-                    stock_dict['Symbol'].append(symbol)
+                    stock_info = yf.Ticker(symbol).info
 
-                    stock_dict['currentPrice'].append(
-                        stock_info['currentPrice'])
-                    stock_dict['dayHigh'].append(stock_info['dayHigh'])
-                    stock_dict['dayLow'].append(stock_info['dayLow'])
-                    stock_dict['forwardPE'].append(stock_info['forwardPE'])
-                    stock_dict['dividendYield'].append(
-                        stock_info['dividendYield'])
+                    stock_info['Org'] = org_name
+                    stock_info['Symbol'] = symbol
+                    stock_info_list.append(stock_info)
                 else:
                     # If name can't be found pass.
                     pass
@@ -66,8 +51,7 @@ def stock_info(headings):
                 # Don't raise an error.
                 pass
 
-    output_df = pd.DataFrame.from_dict(stock_dict, orient='index')
-    output_df = output_df.transpose()
+    output_df = pd.DataFrame(stock_info_list)
     return output_df
 
 
@@ -78,15 +62,17 @@ user_input = st.text_input(
 # Get financial headlines
 fin_headings = extract_rss(user_input)
 
-print(fin_headings)
-# Output financial info
+
 output_df = stock_info(fin_headings)
+
+output_df = output_df[['Org', 'Symbol', 'currentPrice',
+                       'dayHigh', 'dayLow', 'forwardPE', 'dividendYield']]
 output_df.drop_duplicates(inplace=True, subset='Symbol')
 st.dataframe(output_df)
 
+
 with st.expander("Expand for stocks news"):
     for heading in fin_headings:
-        if heading == str:
+        heading = heading.text
+        if type(heading) == str:
             st.markdown("* " + heading)
-        else:
-            pass
